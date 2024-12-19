@@ -5,9 +5,9 @@ import ErrorHandler from "../utils/errorHandler.js";
 // save and create role
 const saveRole = catchAsyncError(async (req, res, next) => {
     try {
-        const { _id, roleId, roleName, permissionIds, isActive } = req.body;
+        const { _id, roleId, roleName, permissions, isActive } = req.body;
 
-        if (!roleId || !roleName || !permissionIds) {
+        if (!roleId || !roleName || !permissions) {
             return next(new ErrorHandler("Please provide all the required fields", 400));
         }
 
@@ -15,7 +15,7 @@ const saveRole = catchAsyncError(async (req, res, next) => {
         let roleData = {
             roleId,
             roleName,
-            permissionIds,
+            permissions,
             isActive,
         };
 
@@ -69,48 +69,94 @@ const getRole = catchAsyncError(async (req, res, next) => {
     try {
         const { _id, roleId, roleName, limit, page } = req.body;
 
-        // query object for filteration
-        const query = {
+
+        const query = {                                                       // query object for filteration
             ...(_id ? { _id } : {}),
             ...(roleId ? { roleId } : {}),
             ...(roleName ? { roleName } : {})
         };
 
-        // total role count
-        const totalRoleCount = await Roles.countDocuments(query);
 
-        // role data
-        // const roleData = await Roles.find(query)
+        const totalRoleCount = await Roles.countDocuments(query);            // total role count
 
-        const roles = await Roles.aggregate([
+        const roleData = await Roles.aggregate([
             {
-                $lookup:                                  // joining Roles and permission to get permission data
-                {
-                    from: 'permissions',
-                    localField: 'permissionIds',
-                    foreignField: 'permissionId',
-                    as: 'permissionIds'
-                }
-
+                $match: query,                                              // Filter based on query
+            },
+            {
+                $addFields: {
+                    permissionsArray: {
+                        $objectToArray: "$permissions",                    // Converts the permission object to array
+                    },
+                },
+            },
+            {
+                $unwind: "$permissionsArray",                               // Unwind permiossion Array
+            },
+            {
+                $lookup: {
+                    from: "modules",                                        // Foreign collection
+                    localField: "permissionsArray.v",                        // Array elements of module ID's
+                    foreignField: "moduleId",                               // Feild in forign collection 
+                    as: "permissionsArray.modules",                                // joined data feilds                         
+                },
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    roleId: { $first: "$roleId" },
+                    roleName: { $first: "$roleName" },
+                    permissions: {
+                        $push: {
+                            key: "$permissionsArray.k",                     // Permission Key (View, Update, etc.)
+                            modules: "$permissionsArray.modules",           // Corresponding module values
+                        },
+                    },
+                    isActive: { $first: "$isActive" },
+                    createdAt: { $first: "$createdAt" },
+                    updatedAt: { $first: "$updatedAt" },
+                },
+            },
+            {
+                $project: {
+                    _id: 1,
+                    roleId: 1,
+                    roleName: 1,
+                    isActive: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    permissions: {
+                        $arrayToObject: {
+                            $map: {
+                                input: "$permissions",
+                                as: "perm",
+                                in: {
+                                    k: "$$perm.key",
+                                    v: {
+                                        $map: {
+                                            input: "$$perm.modules",
+                                            as: "module",
+                                            in: {
+                                                moduleId: "$$module.moduleId",
+                                                moduleName: "$$module.moduleName",
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             }
         ]).limit(Number(limit)).skip(Number(limit)*(Number(page) - 1));
 
-        const roleData = roles.map(role => ({
-            ...role,
-            permissionIds: role.permissionIds.map(permission => ({
-                permissionId: permission.permissionId,
-                permissionName: permission.permissionName,
-                isParent: permission.isParent,
-                parentId: permission.parentId,
-                isActive: permission.isActive
-            }))
-        }))
 
-        // checking for empty record
-        if (roleData.length === 0) return next(new ErrorHandler("No role found", 404));
 
-        // total pages
-        const totalPages = Math.ceil(totalRoleCount / Number(limit));
+
+
+        if (roleData.length === 0) return next(new ErrorHandler("No role found", 404));                 // checking for empty record
+
+        const totalPages = Math.ceil(totalRoleCount / Number(limit));                                   // total pages
 
         res.status(200).json({
             status: "success",

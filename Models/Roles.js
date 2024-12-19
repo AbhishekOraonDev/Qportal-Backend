@@ -10,9 +10,23 @@ const roleSchema = new mongoose.Schema({
         type: String,
         required: [true, "Please provide role name"]
     },
-    permissionIds: {
-        type: [String], // An array to handle multiple permissions for a single role
-        required: [true, "Please provide premissionId's"],
+    permissions: {
+        View: {
+            type: [String],
+            default: []
+        },
+        Update: {
+            type: [String],
+            default: []
+        },
+        Delete: {
+            type: [String],
+            default: []
+        },
+        Create: {
+            type: [String],
+            default: []
+        }
     },
     isActive: {
         type: Boolean,

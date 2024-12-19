@@ -13,6 +13,7 @@ import paperRoutes from "./routes/paper.js";
 import noteRoutes from "./routes/notesRoute.js";
 import roleRoutes from "./routes/roleRoute.js";
 import permissionRoutes from "./routes/permissionRoute.js";
+import moduleRoutes from "./routes/moduleRoute.js";
 
 config({
     path: "./config/config.env",
@@ -29,6 +30,7 @@ app.use("/api/papers", paperRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/role", roleRoutes);
 app.use("/api/permission", permissionRoutes);
+app.use("/api/module", moduleRoutes);
 
 app.use(ErrorMiddleware);                                               // global error middleware 
 

@@ -6,17 +6,14 @@ const permissionSchema = new mongoose.Schema({
         required: [true, "Please provide permission Id"],
         unique: true
     },
-    permissionName: {
+    ModuleId: {
         type: String,
-        required: [true, "Please provide permission name"]
+        required: [true, "Please provide module Id"]
     },
-    isParent: {
-        type: Boolean,
-        default: false
-    },
-    parentId: {
+    Action: {
         type: String,
-        default: null
+        enum: [{1: "View"} , {2: "Update"}, {3: "Delete"}, {4: "Create"}],
+        default: 1
     },
     isActive: {
         type: Boolean,
@@ -25,6 +22,10 @@ const permissionSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    updatedAt: {
+        type: Date,
+        default: null,
     }
 })
 
