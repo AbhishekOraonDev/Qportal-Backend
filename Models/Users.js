@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
         required: [true, "Gender must be provided"],
     },
     role: {
-        type: String,
+        type: [String],
         required: [true, "Login Type must be provided"]
     }, //for distinguishing teacher and student
     rollNumber: {

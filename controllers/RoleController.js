@@ -1,5 +1,6 @@
 import { catchAsyncError } from "../middleware/catchAsyncError.js";
 import { Roles } from "../Models/Roles.js";
+import { User } from "../Models/Users.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
 // save and create role
@@ -96,9 +97,9 @@ const getRole = catchAsyncError(async (req, res, next) => {
             {
                 $lookup: {
                     from: "modules",                                        // Foreign collection
-                    localField: "permissionsArray.v",                        // Array elements of module ID's
+                    localField: "permissionsArray.v",                       // Array elements of module ID's
                     foreignField: "moduleId",                               // Feild in forign collection 
-                    as: "permissionsArray.modules",                                // joined data feilds                         
+                    as: "permissionsArray.modules",                         // joined data feilds                         
                 },
             },
             {
@@ -151,9 +152,6 @@ const getRole = catchAsyncError(async (req, res, next) => {
         ]).limit(Number(limit)).skip(Number(limit)*(Number(page) - 1));
 
 
-
-
-
         if (roleData.length === 0) return next(new ErrorHandler("No role found", 404));                 // checking for empty record
 
         const totalPages = Math.ceil(totalRoleCount / Number(limit));                                   // total pages
@@ -176,4 +174,29 @@ const getRole = catchAsyncError(async (req, res, next) => {
 });
 
 
-export { saveRole, getRole };
+const userRoleMapping = catchAsyncError(async(req, res, next) => {
+    try{
+        const {_id, roleId} = req.body;
+
+        const user = await User.findById(_id);
+        if(!user) return next(new ErrorHandler("User not found", 404));
+
+        user.updatedAt = new Date();
+
+        Object.assign(user, {role: [roleId]});
+        await user.save();
+
+        return res.status(200).json({
+            status: "success",
+            data: [user],
+            message: "Role mapped to user successfuly",
+        });
+
+
+    }catch(err){
+        console.error("Internal Server Error, err: ", err);
+        next(new ErrorHandler(err.message || "Internal Server Error", 500));
+    }
+});
+
+export { saveRole, getRole, userRoleMapping };
