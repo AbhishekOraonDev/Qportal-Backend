@@ -4,6 +4,7 @@ import { catchAsyncError } from '../middleware/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import bcrypt from 'bcrypt';
 import mongoose from 'mongoose';
+import {ObjectId} from 'mongodb'
 
 
 const saveUser = catchAsyncError(async (req, res, next) => {
@@ -95,21 +96,44 @@ const EditUser = catchAsyncError(async (req, res, next) => {
 // Controller for get users
 const getUser = catchAsyncError(async(req, res, next) => {
     try{
-        const {_id, firstName, lastName, email, phone, limit, page} = req.body;
+        const {_id, firstName, lastName, email, phone, role, limit, page} = req.body;
 
         const query = {
-            ...(_id ? {_id}:{}),
-            ...(firstName ? {firstName}:{}),
-            ...(lastName ? {lastName}:{}),
-            ...(email ? {email}:{}),
-            ...(phone ? {phone}:{})
+            ...(_id && ObjectId.isValid(_id) ? { _id: new ObjectId(_id) } : {}),
+            ...(firstName ? { firstName } : {}),
+            ...(lastName ? { lastName } : {}),
+            ...(email ? { email } : {}),
+            ...(phone ? { phone } : {}),
+            ...(role ? { role: { $in: [role] } } : {}), // Match if role array contains the role
         };
+
 
         // Total user count
         const totalUserCount = await User.countDocuments(query);
 
         // User data
-        const userData = await User.find(query).limit(Number(limit)).skip(Number(limit)*(Number(page)-1));
+        // const userData = await User.find(query).limit(Number(limit)).skip(Number(limit)*(Number(page)-1));
+
+
+        const userData = await User.aggregate([
+            { $match: query }, // Filter users based on the query
+            { $unwind: "$role" }, // Unwind the array to match individual roles
+            {
+                $lookup: {
+                    from: "roles", // Target collection
+                    localField: "role", // Local field (unwound role value)
+                    foreignField: "roleId", // Target field in Roles collection
+                    as: "roleDetails", // Output field for matched data
+                },
+            },
+            {
+                $addFields: {
+                    roleDetails: { $arrayElemAt: ["$roleDetails", 0] }, // Extract the first matching role
+                },
+            },
+        ]).limit(Number(limit)).skip(Number(limit)*(Number(page)-1));
+
+
 
         if(userData.length === 0) return next(new ErrorHandler("No user found", 404));
 

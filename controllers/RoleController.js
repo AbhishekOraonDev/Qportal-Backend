@@ -181,6 +181,9 @@ const userRoleMapping = catchAsyncError(async(req, res, next) => {
         const user = await User.findById(_id);
         if(!user) return next(new ErrorHandler("User not found", 404));
 
+        if(user.role.includes(roleId)) return next(new ErrorHandler("This role is already assigned to the user", 409));         // May delete later, prevents from duplicate roleId
+
+
         user.updatedAt = new Date();
 
         Object.assign(user, {role: [roleId]});
@@ -191,7 +194,7 @@ const userRoleMapping = catchAsyncError(async(req, res, next) => {
             data: [user],
             message: "Role mapped to user successfuly",
         });
-
+        
 
     }catch(err){
         console.error("Internal Server Error, err: ", err);
