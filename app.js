@@ -41,7 +41,7 @@ app.use("/api/module", moduleRoutes);
 app.use(ErrorMiddleware);                                               // global error middleware 
 
 // Default home route
-app.get('/v1', (req, res) => {
+app.get('/', (req, res) => {
     try{
         res.status(200).json({
             status: "success",
