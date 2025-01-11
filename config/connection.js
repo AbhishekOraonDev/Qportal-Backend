@@ -7,7 +7,7 @@ export const connectDB = async () => {
         await mongoose.connect(process.env.DB_uri, {
             dbName: 'Qportal'
         });
-        console.log('Connected to the Database.');
+        console.log('Connected to Database.');
     } catch(err) {
         console.error('Error connecting to the database:', err);
         throw err; 

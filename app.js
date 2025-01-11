@@ -15,6 +15,12 @@ import roleRoutes from "./routes/roleRoute.js";
 import permissionRoutes from "./routes/permissionRoute.js";
 import moduleRoutes from "./routes/moduleRoute.js";
 
+// DB Connection
+import { connectDB } from "./config/connection.js";
+
+// PORT variable
+const PORT = process.env.PORT || 5000;
+
 config({
     path: "./config/config.env",
 });
@@ -50,5 +56,10 @@ app.get('/v1', (req, res) => {
     }
 });
 
+connectDB();  //Connnecting DB
+
+app.listen(PORT, ()=> {
+    console.log(`server running on PORT ${PORT}`)
+});
 
 export default app;
